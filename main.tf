@@ -53,7 +53,7 @@ resource "aws_route_table_association" "public_rt_association" {
 
 # Create a security group for jenkins server
 resource "aws_security_group" "my_security_group" {
-  name        = "Jenkins-sg"
+  name        = "Jenkins-Sonarqube-sg"
   vpc_id      = aws_vpc.my_vpc.id
   description = "Allow inbound & outbound traffic"
 
@@ -80,7 +80,7 @@ resource "aws_security_group" "my_security_group" {
   }
 }
 
-# Launch an EC2 instance in the subnet with the security group
+# Launch an EC2 instance for jenkins
 resource "aws_instance" "jenkins-server" {
   ami                         = var.ami_id
   instance_type               = var.instance_type
@@ -94,7 +94,7 @@ resource "aws_instance" "jenkins-server" {
   }
 }
 
-resource "null_resource" "name" {
+resource "null_resource" "jenkins" {
 
   connection {
     type        = "ssh"
@@ -104,14 +104,50 @@ resource "null_resource" "name" {
   }
 
   provisioner "file" {
-    source      = "install.sh"
-    destination = "/tmp/install.sh"
+    source      = "jenkins.sh"
+    destination = "/tmp/jenkins.sh"
   }
 
   provisioner "remote-exec" {
     inline = [
-      "sudo chmod +x /tmp/install.sh",
-      "sudo bash /tmp/install.sh",
+      "sudo chmod +x /tmp/jenkins.sh",
+      "sudo bash /tmp/jenkins.sh",
+    ]
+  }
+}
+
+# Launch an EC2 instance for sonarqube
+resource "aws_instance" "sonarqube-server" {
+  ami                         = var.ami_id
+  instance_type               = var.instance_type
+  subnet_id                   = aws_subnet.public.id
+  vpc_security_group_ids      = [aws_security_group.my_security_group.id]
+  key_name                    = "jenkins-new"
+  associate_public_ip_address = true
+
+  tags = {
+    Name = "Sonarqube-Server"
+  }
+}
+
+resource "null_resource" "sonarqube" {
+
+  connection {
+    type        = "ssh"
+    user        = "ubuntu"
+    private_key = file("aws-keys/jenkins-new.pem")
+    host        = aws_instance.sonarqube-server.public_ip
+  }
+
+  provisioner "file" {
+    source      = "sonarqube.sh"
+    destination = "/tmp/sonarqube.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo chmod +x /tmp/sonarqube.sh",
+      "sudo bash /tmp/sonarqube.sh",
     ]
   }
 }

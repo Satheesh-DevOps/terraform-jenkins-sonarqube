@@ -10,5 +10,5 @@ terraform {
 
 provider "aws" {
   region                   = var.aws_region
-  shared_credentials_files = [ "C:\\Users\\Satheesh\\.aws\\credentials" ]
+  shared_credentials_files = ["C:\\Users\\Satheesh\\.aws\\credentials"]
 }
